@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "Exceptions.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -19,11 +20,10 @@ int main(int argc, char* argv[])
     ProgramSettings settings{false, false, "", "", {}, {}, CipherMode::Encrypt};
 
     // Process command line arguments
-    const bool cmdLineStatus{processCommandLine(cmdLineArgs, settings)};
-
-    // Any failure in the argument processing means we can't continue
-    // Use a non-zero return value to indicate failure
-    if (!cmdLineStatus) {
+    try {
+        processCommandLine(cmdLineArgs, settings);
+    } catch (const MissingArgument& e) {
+        std::cerr << "[error] Missing argument: " << e.what() << std::endl;
         return 1;
     }
 

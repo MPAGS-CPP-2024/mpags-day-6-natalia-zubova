@@ -24,6 +24,7 @@ class CaesarCipher : public Cipher {
      * \brief Create a new CaesarCipher with the given key
      *
      * \param key the key to use in the cipher
+     * 
      */
     explicit CaesarCipher(const std::size_t key);
 
@@ -31,6 +32,9 @@ class CaesarCipher : public Cipher {
      * \brief Create a new CaesarCipher, converting the given string into the key
      *
      * \param key the string to convert into the key to be used in the cipher
+     * 
+     * \exception InvalidKey will be emitted if the supplied string cannot be
+     * successfully converted to a positive integer
      */
     explicit CaesarCipher(const std::string& key);
 
