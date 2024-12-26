@@ -1,15 +1,17 @@
 #include "CipherFactory.hpp"
 #include "CipherMode.hpp"
 #include "CipherType.hpp"
+#include "Exceptions.hpp"
 #include "ProcessCommandLine.hpp"
 #include "TransformChar.hpp"
 
 #include <algorithm>
 #include <fstream>
+#include <future>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <vector>
-#include "Exceptions.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -110,11 +112,43 @@ int main(int argc, char* argv[])
     if (settings.cipherMode == CipherMode::Decrypt) {
         std::reverse(ciphers.begin(), ciphers.end());
     }
-
     // Run the cipher(s) on the input text, specifying whether to encrypt/decrypt
-    for (const auto& cipher : ciphers) {
-        cipherText = cipher->applyCipher(cipherText, settings.cipherMode);
+    // and using multithreading
+    std::vector<std::future<std::string>>
+        futures;    // Vector to hold futures for each thread
+    std::vector<std::string> substrings;    // To store substrings for threads
+
+    // Divide the input text into parts based on the number of threads
+    std::size_t numThreads = 4;
+    size_t length = cipherText.size();
+    size_t partSize = length / numThreads;
+
+    // Start a thread for each substring
+    for (size_t i = 0; i < numThreads; ++i) {
+        std::size_t start = partSize * i;
+        std::size_t currentPartSize =
+            start + partSize > length ? length - start : partSize;
+        futures.push_back(std::async(
+            std::launch::async,
+            [&ciphers, &settings](const std::string& text) -> std::string {
+                std::string result = text;
+                for (const auto& cipher : ciphers) {
+                    result = cipher->applyCipher(result, settings.cipherMode);
+                }
+                return result;
+            },
+            cipherText.substr(
+                start, currentPartSize)    // Pass the substring for this thread
+            ));
     }
+
+    // Wait for all threads to finish and gather the results
+    std::string finalResult;
+    for (auto& future : futures) {
+        finalResult += future.get();    // Combine results from all threads
+    }
+
+    cipherText = finalResult;    // Set the final result back to cipherText
 
     // Output the encrypted/decrypted text to stdout/file
     if (!settings.outputFile.empty()) {
